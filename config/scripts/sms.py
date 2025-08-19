@@ -9,29 +9,53 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-try:
-    logger.debug(f"Data extracted: {routable.pdu.params}")
+def send_message(source_addr: str, destination_addr: str, short_message: str):
+    import http.client
+    import json
+    import ssl
 
-    logger.debug("Test")
-    print("Test")
+    API_KEY = "SOMETHING" # <-- Replace with actual base64-encoded API key
 
-    data = {
-        "source_addr": routable.pdu.params.get('source_addr', b'').decode('utf-8', errors='ignore'),
-        "destination_addr": routable.pdu.params.get('destination_addr', b'').decode('utf-8', errors='ignore'),
-        "short_message": routable.pdu.params.get('short_message', b'').decode('utf-8', errors='ignore')
+    # Create an SSL context that does not verify the certificate
+    context = ssl._create_unverified_context()
+
+    # Connect using the context that skips verification
+    conn = http.client.HTTPSConnection("web.it-decision.com", context=context)
+
+    payload = json.dumps({
+        "phone": destination_addr,
+        "sender": source_addr,
+        "text": short_message,
+        "validity_period": 300
+    })
+
+    headers = {
+        'Authorization': f'Basic {API_KEY}',
+        # <-- Replace with actual base64-encoded API key
+        'Content-Type': 'application/json'
     }
 
-    url = 'http://172.17.0.1:8001/send'
-    headers = {'Content-Type': 'application/json'}
-    response = requests.post(url, json=data, headers=headers, timeout=3)
-    logger.debug("SMS Interceptor: Request")
+    conn.request("POST", "/v1/api/send-sms", payload, headers)
+    res = conn.getresponse()
+    data = res.read()
 
-    if response.status_code == 200:
-        print("200")
-        logger.debug(f"POST successful: {response.text}")
+    if res.status == 200:
+        print("200 OK")
+        print(data.decode("utf-8"))
     else:
-        print("Bad")
-        logger.error(f"POST failed [{response.status_code}]: {response.text}")
+        print(f"Error: {res.status} - {res.reason}")
+        raise Exception(f"Failed to send message: {res.status} - {res.reason}")
+
+data = {
+    "source_addr": routable.pdu.params.get('source_addr', b'').decode('utf-8', errors='ignore'),
+    "destination_addr": routable.pdu.params.get('destination_addr', b'').decode('utf-8', errors='ignore'),
+    "short_message": routable.pdu.params.get('short_message', b'').decode('utf-8', errors='ignore')
+}
+
+try:
+    logger.info(f"Sending message: {data}")
+    send_message(data['source_addr'], data['destination_addr'], data['short_message'])
+    logger.info("Message sent successfully")
 
 except Exception as e:
     print("Error")

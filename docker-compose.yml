@@ -13,6 +13,8 @@ services:
       - JASMIN_INTERFACES=sm-http
     networks:
       - jasmin-net
+    volumes:
+      - ./config/scripts:/opt/jasmin-scripts
 
   # web-panel:
   #   image: tarekaec/jasmin_web_panel:1.3
