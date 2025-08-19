@@ -1,14 +1,15 @@
-FROM jookies/jasmin
+FROM jookies/jasmin:latest
 
-RUN pip install --upgrade pip && \
-    pip install fastapi uvicorn requests
+# Copy your custom configs into the container
+COPY config/store /etc/jasmin/store
+COPY config/scripts /opt/jasmin-scripts
 
-COPY api/ api/
+# Add entrypoint script (if you want to automate CLI / Telnet config)
+# COPY config/entrypoint.sh /entrypoint.sh
+# RUN chmod +x /entrypoint.sh
 
-WORKDIR /api
+# ENTRYPOINT ["/entrypoint.sh"]
 
-COPY config/ /opt/myfiles/
-
-EXPOSE 2775 1401 8990
-
-CMD ["sh", "-c", "/entrypoint.sh & uvicorn main:app --host 0.0.0.0 --port 8000"]
+RUN pip install --upgrade pip
+COPY config/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
