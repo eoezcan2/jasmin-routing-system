@@ -13,3 +13,6 @@ COPY config/scripts /opt/jasmin-scripts
 RUN pip install --upgrade pip
 COPY config/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Expose ports (if different from default)
+EXPOSE 2775
