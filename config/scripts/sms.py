@@ -2,7 +2,6 @@ import requests
 import logging
 
 logger = logging.getLogger('jasmin-interceptor')
-# handler = logging.FileHandler('mt_interceptor.log')
 handler = logging.FileHandler('/var/log/jasmin/mt_interceptor.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 handler.setFormatter(formatter)
@@ -13,8 +12,11 @@ def send_message(source_addr: str, destination_addr: str, short_message: str):
     import http.client
     import json
     import ssl
+    from dotenv import load_dotenv
+    import os
 
-    API_KEY = "SOMETHING" # <-- Replace with actual base64-encoded API key
+    load_dotenv('/etc/jasmin/.env')
+    API_KEY = os.getenv('API_KEY')
 
     # Create an SSL context that does not verify the certificate
     context = ssl._create_unverified_context()

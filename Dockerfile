@@ -2,6 +2,7 @@ FROM jookies/jasmin:latest
 
 # Copy your custom configs into the container
 COPY config/store /etc/jasmin/store
+COPY .env /etc/jasmin/.env
 COPY config/scripts /opt/jasmin-scripts
 
 # Add entrypoint script (if you want to automate CLI / Telnet config)
