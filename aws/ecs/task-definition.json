@@ -1,0 +1,92 @@
+{
+  "family": "jasmin",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ENVIRONMENT-ecs-task-execution-role",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ENVIRONMENT-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "jasmin",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/jasmin:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 2775,
+          "protocol": "tcp"
+        },
+        {
+          "containerPort": 1401,
+          "protocol": "tcp"
+        },
+        {
+          "containerPort": 8990,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "JASMIN_INTERFACES",
+          "value": "sm-http"
+        },
+        {
+          "name": "REDIS_HOST",
+          "value": "REDIS_ENDPOINT"
+        },
+        {
+          "name": "REDIS_PORT",
+          "value": "6379"
+        },
+        {
+          "name": "RABBITMQ_HOST",
+          "value": "RABBITMQ_ENDPOINT"
+        },
+        {
+          "name": "RABBITMQ_PORT",
+          "value": "5671"
+        },
+        {
+          "name": "RABBITMQ_USE_SSL",
+          "value": "true"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "REDIS_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:ENVIRONMENT/redis:SecretString:password"
+        },
+        {
+          "name": "RABBITMQ_USERNAME",
+          "valueFrom": "arn:aws:secretsmanager:ENVIRONMENT/rabbitmq:SecretString:username"
+        },
+        {
+          "name": "RABBITMQ_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:ENVIRONMENT/rabbitmq:SecretString:password"
+        },
+        {
+          "name": "API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ENVIRONMENT/jasmin:SecretString:api_key"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/ENVIRONMENT-jasmin",
+          "awslogs-region": "REGION",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:1401/ping || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

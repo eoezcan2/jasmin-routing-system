@@ -1,0 +1,49 @@
+{
+  "cluster": "ENVIRONMENT-jasmin-cluster",
+  "serviceName": "jasmin-service",
+  "taskDefinition": "jasmin",
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:REGION:ACCOUNT_ID:targetgroup/ENVIRONMENT-smpp-tg/TARGET_GROUP_ID",
+      "containerName": "jasmin",
+      "containerPort": 2775
+    },
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:REGION:ACCOUNT_ID:targetgroup/ENVIRONMENT-http-tg/TARGET_GROUP_ID",
+      "containerName": "jasmin",
+      "containerPort": 1401
+    },
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:REGION:ACCOUNT_ID:targetgroup/ENVIRONMENT-cli-tg/TARGET_GROUP_ID",
+      "containerName": "jasmin",
+      "containerPort": 8990
+    }
+  ],
+  "desiredCount": 2,
+  "launchType": "FARGATE",
+  "platformVersion": "LATEST",
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": [
+        "subnet-PRIVATE_SUBNET_1_ID",
+        "subnet-PRIVATE_SUBNET_2_ID"
+      ],
+      "securityGroups": [
+        "sg-ECS_SECURITY_GROUP_ID"
+      ],
+      "assignPublicIp": "DISABLED"
+    }
+  },
+  "deploymentConfiguration": {
+    "maximumPercent": 200,
+    "minimumHealthyPercent": 50,
+    "deploymentCircuitBreaker": {
+      "enable": true,
+      "rollback": true
+    }
+  },
+  "healthCheckGracePeriodSeconds": 60,
+  "schedulingStrategy": "REPLICA",
+  "enableECSManagedTags": true,
+  "propagateTags": "SERVICE"
+}
