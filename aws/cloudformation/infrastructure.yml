@@ -272,28 +272,27 @@ Resources:
   RedisParameterGroup:
     Type: AWS::ElastiCache::ParameterGroup
     Properties:
+      CacheParameterGroupFamily: redis6.x
       Description: Parameter group for Redis
-      Family: redis6.x
       Properties:
         maxmemory-policy: allkeys-lru
+
 
   Redis:
     Type: AWS::ElastiCache::ReplicationGroup
     Properties:
       ReplicationGroupDescription: !Sub '${Environment} Redis cluster'
-      ReplicationGroupId: !Sub '${Environment}-redis'
-      NodeType: cache.t3.micro
+      ReplicationGroupId: !Sub '${Environment}-redis-${AWS::AccountId}-eu'
+      CacheNodeType: cache.t3.micro
       NumCacheClusters: 1
       Engine: redis
       EngineVersion: 6.x
-      CacheParameterGroupFamily: redis6.x
       CacheParameterGroupName: !Ref RedisParameterGroup
       CacheSubnetGroupName: !Ref RedisSubnetGroup
       SecurityGroupIds:
         - !Ref RedisSecurityGroup
       AtRestEncryptionEnabled: true
-      TransitEncryptionEnabled: true
-      AuthToken: !Sub '{{resolve:secretsmanager:${Environment}/redis:SecretString:password}}'
+      TransitEncryptionEnabled: false
       AutomaticFailoverEnabled: false
       MultiAZEnabled: false
 
@@ -301,9 +300,9 @@ Resources:
   RabbitMQ:
     Type: AWS::AmazonMQ::Broker
     Properties:
-      BrokerName: !Sub '${Environment}-rabbitmq'
+      BrokerName: !Sub '${Environment}-rabbitmq-${AWS::AccountId}-eu'
       EngineType: rabbitmq
-      EngineVersion: '3.10.20'
+      EngineVersion: '3.13'
       HostInstanceType: mq.t3.micro
       DeploymentMode: SINGLE_INSTANCE
       PubliclyAccessible: false
@@ -319,7 +318,6 @@ Resources:
             - administrators
       Logs:
         General: true
-        Audit: false
       MaintenanceWindowStartTime:
         DayOfWeek: sunday
         TimeOfDay: '03:00'
@@ -337,19 +335,17 @@ Resources:
         - CapacityProvider: FARGATE
           Weight: 1
 
-  # Application Load Balancer
+  # Network Load Balancer
   ALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Sub '${Environment}-jasmin-alb'
       Scheme: internet-facing
-      Type: application
+      Type: network
       IpAddressType: ipv4
       Subnets:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
-      SecurityGroups:
-        - !Ref ALBSecurityGroup
 
   # Target Groups
   SMPPTargetGroup:
@@ -372,11 +368,10 @@ Resources:
     Properties:
       Name: !Sub '${Environment}-http-tg'
       Port: 1401
-      Protocol: HTTP
+      Protocol: TCP
       TargetType: ip
       VpcId: !Ref VPC
-      HealthCheckPath: /ping
-      HealthCheckProtocol: HTTP
+      HealthCheckProtocol: TCP
       HealthCheckPort: 1401
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 2
@@ -414,7 +409,7 @@ Resources:
     Properties:
       LoadBalancerArn: !Ref ALB
       Port: 1401
-      Protocol: HTTP
+      Protocol: TCP
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref HTTPTargetGroup
@@ -516,10 +511,6 @@ Outputs:
     Export:
       Name: !Sub '${Environment}-redis-endpoint'
 
-  RabbitMQEndpoint:
-    Description: RabbitMQ Endpoint
-    Value: !GetAtt RabbitMQ.AmqpEndpoints[0]
-    Export:
       Name: !Sub '${Environment}-rabbitmq-endpoint'
 
   ECSTaskExecutionRoleArn:

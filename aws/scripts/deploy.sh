@@ -8,7 +8,7 @@ set -e
 # Configuration
 ENVIRONMENT=${1:-production}
 REGION=${2:-eu-central-1}
-STACK_NAME="${ENVIRONMENT}-jasmin-stack"
+STACK_NAME="production-jasmin-stack-20250829-211125"
 ECR_REPOSITORY_NAME="jasmin"
 
 # Colors for output
@@ -104,10 +104,12 @@ create_secrets() {
     
     # RabbitMQ credentials
     if ! aws secretsmanager describe-secret --secret-id "$ENVIRONMENT/rabbitmq" --region $REGION &> /dev/null; then
+        # Generate password without invalid characters for RabbitMQ
+        RABBITMQ_PASSWORD=$(openssl rand -base64 32 | tr -d '=+/' | cut -c1-32)
         aws secretsmanager create-secret \
             --name "$ENVIRONMENT/rabbitmq" \
             --description "RabbitMQ credentials for $ENVIRONMENT environment" \
-            --secret-string '{"username":"admin","password":"'$(openssl rand -base64 32)'"}' \
+            --secret-string "{\"username\":\"admin\",\"password\":\"$RABBITMQ_PASSWORD\"}" \
             --region $REGION
         print_status "RabbitMQ secret created"
     else
@@ -159,7 +161,7 @@ get_stack_outputs() {
     ECS_CLUSTER_NAME=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="ECSClusterName") | .OutputValue')
     ALB_ARN=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="ALBArn") | .OutputValue')
     REDIS_ENDPOINT=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="RedisEndpoint") | .OutputValue')
-    RABBITMQ_ENDPOINT=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="RabbitMQEndpoint") | .OutputValue')
+    RABBITMQ_ENDPOINT=$(aws mq describe-broker --broker-id "${ENVIRONMENT}-rabbitmq-${ACCOUNT_ID}-eu" --region $REGION --query "BrokerInstances[0].Endpoints[0]" --output text)
     TASK_EXECUTION_ROLE_ARN=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="ECSTaskExecutionRoleArn") | .OutputValue')
     
     # Get target group ARNs
